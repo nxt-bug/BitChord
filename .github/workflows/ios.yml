@@ -1,0 +1,65 @@
+name: iOS
+
+# Builds the iPhone app (web/ios) on a GitHub-hosted Mac and uploads an
+# UNSIGNED .ipa. Sideload it with Sideloadly or AltStore, which sign it with
+# your own Apple ID. See web/ios/README.md.
+on:
+  workflow_dispatch:
+
+jobs:
+  ipa:
+    name: iOS · unsigned .ipa
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Build the web app
+        working-directory: web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @bitchord/app build
+        env:
+          # Listen Together needs a real party server; the player doesn't.
+          VITE_PARTY_SERVER_URL: ${{ vars.VITE_PARTY_SERVER_URL || 'https://party.example.com' }}
+
+      - name: Generate the Xcode project
+        working-directory: web/ios
+        run: |
+          npm install
+          npx cap add ios
+          python3 scripts/patch-ios.py ios/App
+          npx cap sync ios
+
+      - name: Archive (unsigned)
+        working-directory: web/ios/ios/App
+        run: |
+          if [ -d App.xcworkspace ]; then TARGET=(-workspace App.xcworkspace); else TARGET=(-project App.xcodeproj); fi
+          xcodebuild "${TARGET[@]}" -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/BitChord.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            archive | tail -n 60
+          test -d "$RUNNER_TEMP/BitChord.xcarchive/Products/Applications/App.app"
+
+      - name: Package .ipa
+        run: |
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$RUNNER_TEMP/BitChord.xcarchive/Products/Applications/App.app" "$RUNNER_TEMP/ipa/Payload/"
+          (cd "$RUNNER_TEMP/ipa" && zip -qr "$GITHUB_WORKSPACE/BitChord.ipa" Payload)
+          ls -lh BitChord.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BitChord-unsigned-ipa
+          path: BitChord.ipa
+          if-no-files-found: error

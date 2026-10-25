@@ -1,0 +1,15 @@
+{
+  "name": "@bitchord/ios",
+  "private": true,
+  "description": "iPhone wrapper for the BitChord web player (Capacitor). The Xcode project is generated at build time; see README.md.",
+  "scripts": {
+    "sync": "cap sync ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0"
+  }
+}

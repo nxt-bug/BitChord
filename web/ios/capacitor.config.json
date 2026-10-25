@@ -1,0 +1,11 @@
+{
+  "appId": "in.bitchord.ios",
+  "appName": "BitChord",
+  "webDir": "../app/dist",
+  "backgroundColor": "#000000",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

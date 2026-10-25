@@ -3,6 +3,8 @@
  * banner instead of the install prompt (prompt §1).
  */
 export function isMobileBrowser(): boolean {
+  // The iPhone app is a phone, but it isn't a browser: it has its own bridge.
+  if ((globalThis as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.()) return false;
   const uaData = (navigator as Navigator & { userAgentData?: { mobile?: boolean } }).userAgentData;
   if (typeof uaData?.mobile === 'boolean') return uaData.mobile;
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
